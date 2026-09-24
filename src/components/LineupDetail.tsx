@@ -3,6 +3,7 @@ import { assetUrl } from '../lib/assets'
 import type { Lineup } from '../data/types'
 import { GRENADE_SHORT, lineupTitle, ZONE_LABEL } from '../data/types'
 import { mapFullName } from '../data/maps'
+import { usePinchZoom } from '../lib/usePinchZoom'
 
 interface Props {
   lineup: Lineup | null
@@ -10,19 +11,22 @@ interface Props {
 }
 
 /**
- * 准心图：图片按原始像素尺寸渲染，放在一个可滚动的容器里。
- * 缩放/移动全部交给系统原生手势：
- *   - iOS Safari / 触屏：双指捏合缩放、单指/双指拖动（浏览器内置 pinch-zoom，非 JS 手势库）
- *   - macOS：触控板双指捏合缩放、滚动平移
- * 所以不要写任何自定义 gesture 代码，也不要把图片压到 max-width:100%。
+ * 准心图：默认按容器宽度适配显示（合适的初始大小），
+ * 单指拖动、双指捏合缩放（1x~4x，中心跟随手指）、双击切换 1x/2.5x。
+ * 手势只作用于图片，不触发整页缩放（viewport 已禁 page zoom + touch-action:none）。
  */
 function LineupImage({ src, alt, filename }: { src: string; alt: string; filename: string }) {
+  const { containerRef, imgRef, reset, handlers } = usePinchZoom()
+
   return (
     <div className="zoomarea">
-      <div className="zoomwrap">
-        <div className="zoomscroll" aria-label={`${alt}，可用双指捏合缩放、拖动查看`}>
-          <img className="zoomimg" src={src} alt={alt} />
-        </div>
+      <div
+        ref={containerRef}
+        className="zoomscroll"
+        aria-label={`${alt}，可用双指捏合缩放、拖动查看`}
+        {...handlers}
+      >
+        <img ref={imgRef} className="zoomimg" src={src} alt={alt} draggable={false} />
         <span className="zoomhint" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
             <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -32,11 +36,14 @@ function LineupImage({ src, alt, filename }: { src: string; alt: string; filenam
         </span>
       </div>
       <div className="zoombar">
+        <button type="button" className="zoombtn ghost" onClick={reset}>
+          恢复原始大小
+        </button>
         <a className="zoombtn ghost" href={src} download={filename}>
           保存图片
         </a>
       </div>
-      <div className="zoomtip">双指捏合放大缩小，拖动移动图片；长按图片可保存到相册。</div>
+      <div className="zoomtip">双指捏合放大缩小，拖动移动图片；双击快速放大；长按图片可保存到相册。</div>
     </div>
   )
 }
