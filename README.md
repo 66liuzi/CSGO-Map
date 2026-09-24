@@ -12,6 +12,12 @@
 
 > 部署完成后填写：`https://66liuzi.github.io/<仓库名>/`
 
+## 界面预览
+
+| 电脑 | 手机 | 准心大图 |
+| --- | --- | --- |
+| ![桌面](docs/screenshot-desktop.webp) | ![手机](docs/screenshot-mobile.webp) | ![详情](docs/screenshot-detail.webp) |
+
 ## 怎么用
 
 1. 电脑/手机浏览器打开上面的网址。
