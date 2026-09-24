@@ -1,0 +1,33 @@
+{
+  "name": "CS2 炽热沙城道具查询库",
+  "short_name": "沙城道具",
+  "description": "CS2 炽热沙城（Dust II）道具点位速查：搜关键词或直接说人话，立刻出准心瞄点图。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "categories": ["games", "utilities"],
+  "icons": [
+    { "src": "./icons/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "警家烟",
+      "short_name": "警家烟",
+      "url": "./?q=%E8%AD%A6%E5%AE%B6%E7%83%9F"
+    },
+    {
+      "name": "Xbox烟",
+      "short_name": "Xbox烟",
+      "url": "./?q=Xbox%E7%83%9F"
+    }
+  ]
+}
