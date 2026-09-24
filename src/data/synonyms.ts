@@ -139,6 +139,36 @@ const DUST2_LOCATIONS: SynonymGroup[] = [
     terms: ['车', '白车', '蓝车', '黄车', '卡车', 'car', '车位'],
     maps: ['dust2'],
   },
+  {
+    canon: '油桶',
+    kind: 'location',
+    terms: ['油桶', '蓝油桶', 'a大门油桶', 'a门油桶', 'barrel', '油桶位'],
+    maps: ['dust2'],
+  },
+  {
+    canon: '后花园',
+    kind: 'location',
+    terms: ['后花园', '警家后花园', 'ct花园', 'ct后花园', 'backgarden'],
+    maps: ['dust2'],
+  },
+  {
+    canon: '狙位',
+    kind: 'location',
+    terms: ['狙位', 'b狙位', 'b点狙位', '狙位平台', 'sniperspot'],
+    maps: ['dust2'],
+  },
+  {
+    canon: '狗位',
+    kind: 'location',
+    terms: ['狗位', 'b狗位', '狗窝', 'doghouse'],
+    maps: ['dust2'],
+  },
+  {
+    canon: '假门',
+    kind: 'location',
+    terms: ['假门', 'b假门', 'fakedoor', '假门口'],
+    maps: ['dust2'],
+  },
 ]
 
 /** 炼狱小镇 Inferno */
@@ -471,6 +501,11 @@ export const METHOD_GROUPS: SynonymGroup[] = [
     terms: ['跑跳投', '跑跳投掷', 'runjumpthrow', 'run jump throw', '跑跳', '助跑跳投'],
   },
   {
+    canon: '双键跳投',
+    kind: 'method',
+    terms: ['双键跳投', '双键', '左右键跳投', '双键投'],
+  },
+  {
     canon: '站投',
     kind: 'method',
     terms: ['站投', '原地投', '站立投', '站姿', '站扔', 'static', 'standing', '站着投'],
@@ -542,6 +577,16 @@ export const TAG_GROUPS: SynonymGroup[] = [
     canon: '灭火',
     kind: 'tag',
     terms: ['灭火', '灭烟', '灭火烟', '灭火瓶', '扑火', '灭包点火'],
+  },
+  {
+    canon: '反清',
+    kind: 'tag',
+    terms: ['反清', '反清闪', '反清烟', 'peek闪', '反打'],
+  },
+  {
+    canon: '保护烟',
+    kind: 'tag',
+    terms: ['保护烟', '辅助烟', '假打烟', '保护队友'],
   },
 ]
 
@@ -686,6 +731,11 @@ export const ZONE_MAP: Record<string, 'A' | 'MID' | 'B'> = {
   'dust2:B2': 'B',
   'dust2:Xbox': 'MID',
   'dust2:车': 'B',
+  'dust2:油桶': 'A',
+  'dust2:后花园': 'B',
+  'dust2:狙位': 'B',
+  'dust2:狗位': 'B',
+  'dust2:假门': 'B',
 
   /* 炼狱小镇 */
   'inferno:香蕉道': 'B',

@@ -318,6 +318,11 @@ const LOC_SLUG = {
   B1: 'b1',
   B2: 'b2',
   'dust2:车': 'car',
+  'dust2:油桶': 'barrel',
+  'dust2:后花园': 'backgarden',
+  'dust2:狙位': 'sniper',
+  'dust2:狗位': 'doghouse',
+  'dust2:假门': 'fakedoor',
   // 小镇
   香蕉道: 'banana',
   沙袋: 'sandbags',

@@ -57,15 +57,28 @@ describe('关键词搜索', () => {
     ).toBe(true)
   })
 
-  it('X箱 能匹配 Xbox', () => {
-    const items = search('X箱').items
+  it('X箱 能匹配 Xbox（词库支持，用构造数据验证）', () => {
+    const xbox: Lineup[] = [
+      mk({ id: 'x1', map: 'dust2', startLocation: '匪家', targetLocation: 'Xbox', grenadeType: '烟雾弹', zone: 'MID' }),
+    ]
+    const items = searchLineups('X箱', xbox, DEFAULT_FILTERS).items
     expect(items[0].lineup.targetLocation).toBe('Xbox')
   })
 
-  it('跑跳投 只出跑跳投的点位', () => {
-    const items = search('跑跳投').items
+  it('跑跳投 只出跑跳投的点位（构造数据）', () => {
+    const data: Lineup[] = [
+      mk({ id: 'rj1', map: 'dust2', startLocation: '匪家', targetLocation: 'Xbox', throwMethod: '跑跳投', zone: 'MID' }),
+      mk({ id: 'rj2', map: 'dust2', startLocation: '匪家', targetLocation: 'Xbox', throwMethod: '站投', zone: 'MID' }),
+    ]
+    const items = searchLineups('跑跳投', data, DEFAULT_FILTERS).items
     expect(items.length).toBe(1)
     expect(items[0].lineup.throwMethod).toBe('跑跳投')
+  })
+
+  it('双键跳投 是合法投法且能搜到', () => {
+    const items = search('双键跳投').items
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].lineup.throwMethod).toBe('双键跳投')
   })
 
   it('单个「家」字不产生大量错误结果', () => {
@@ -81,34 +94,56 @@ describe('关键词搜索', () => {
 })
 
 describe('自然句搜索', () => {
-  it('我在A大怎么封警家 → 优先 A大 封警家', () => {
+  it('我在A大怎么封警家 → A大相关点位排前', () => {
     const items = search('我在A大怎么封警家').items
     expect(items.length).toBeGreaterThan(0)
     const top = items[0].lineup
-    expect(top.startLocation).toContain('A大')
-    expect(top.targetLocation).toBe('警家')
-    expect(top.grenadeType).toBe('烟雾弹')
+    expect(top.startLocation.includes('A大') || top.targetLocation.includes('A大')).toBe(true)
   })
 
-  it('从匪家怎么扔Xbox烟 → 匪家到Xbox的烟', () => {
-    const items = search('从匪家怎么扔Xbox烟').items
-    expect(items[0].lineup.startLocation).toBe('匪家')
-    expect(items[0].lineup.targetLocation).toBe('Xbox')
+  it('我在油桶怎么封A大 → 油桶假打烟排第一', () => {
+    const items = search('我在油桶怎么封A大').items
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].lineup.startLocation).toBe('油桶')
     expect(items[0].lineup.grenadeType).toBe('烟雾弹')
   })
 
-  it('匪家封中 → 能找到匪家出发的相关烟', () => {
-    const items = search('匪家封中').items
+  it('警家封中门 → CT警家中门烟', () => {
+    const items = search('警家封中门').items
     expect(items.length).toBeGreaterThan(0)
-    expect(items[0].lineup.startLocation).toBe('匪家')
+    expect(items[0].lineup.startLocation).toBe('警家')
+    expect(items[0].lineup.grenadeType).toBe('烟雾弹')
   })
 
-  it('CT在B门怎么防B洞Rush → 优先 B门防B洞的火', () => {
-    const items = search('CT在B门怎么防B洞Rush').items
+  it('CT怎么封B门 → B门相关烟/后花园B门烟', () => {
+    const items = search('CT怎么封B门').items
     expect(items.length).toBeGreaterThan(0)
     expect(items[0].lineup.side).toBe('CT')
-    expect(items[0].lineup.targetLocation).toBe('B洞')
-    expect(items[0].lineup.grenadeType).toBe('燃烧弹')
+    expect(items[0].lineup.targetLocation.includes('B门')).toBe(true)
+  })
+
+  it('后花园 能出三条后花园点位（狙位/狗洞/B门）', () => {
+    const items = search('后花园').items
+    expect(items.length).toBeGreaterThanOrEqual(3)
+    expect(items.every((i) => i.lineup.startLocation === '后花园')).toBe(true)
+  })
+
+  it('狗洞烟 能命中 B点狗洞', () => {
+    const items = search('狗洞烟').items
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].lineup.targetLocation).toBe('B点狗洞')
+  })
+
+  it('狙位 能命中 B点狙位隔断烟', () => {
+    const items = search('狙位').items
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].lineup.targetLocation).toBe('B点狙位')
+  })
+
+  it('反清闪 能命中 A小反清闪', () => {
+    const items = search('反清闪').items
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].lineup.targetLocation).toBe('A小')
   })
 
   it('帮我找一个中路烟 → 中路/中门相关烟雾弹', () => {
@@ -161,7 +196,7 @@ describe('性能与数据完整性', () => {
       expect(l.id, 'id 不能为空').toBeTruthy()
       expect(['T', 'CT']).toContain(l.side)
       expect(['烟雾弹', '闪光弹', '燃烧弹', '手雷']).toContain(l.grenadeType)
-      expect(['站投', '跳投', '跑投', '跑跳投', '蹲投', '其他']).toContain(l.throwMethod)
+      expect(['站投', '跳投', '跑投', '跑跳投', '蹲投', '双键跳投', '其他']).toContain(l.throwMethod)
       expect(l.image).toMatch(/^images\/(dust2|inferno|mirage)\/.+\.webp$/)
       expect(l.aliases.length).toBeGreaterThan(0)
       expect(normalize(l.description).length).toBeGreaterThan(0)

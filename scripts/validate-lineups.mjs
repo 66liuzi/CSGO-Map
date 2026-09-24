@@ -11,7 +11,7 @@ const lineups = JSON.parse(readFileSync(join(root, 'src', 'data', 'lineups.json'
 
 const SIDES = ['T', 'CT']
 const GRENADES = ['烟雾弹', '闪光弹', '燃烧弹', '手雷']
-const METHODS = ['站投', '跳投', '跑投', '跑跳投', '蹲投', '其他']
+const METHODS = ['站投', '跳投', '跑投', '跑跳投', '蹲投', '双键跳投', '其他']
 const ZONES = ['A', 'MID', 'B']
 const { MAPS } = await import(new URL('../src/data/maps.ts', import.meta.url).href)
 const MAP_IDS = MAPS.map((m) => m.id)
