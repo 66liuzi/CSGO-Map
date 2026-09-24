@@ -40,8 +40,10 @@ jobs:
       - name: 构建静态站点
         run: npm run build
 
-      - name: 配置 Pages
+      - name: 配置 Pages（首次会自动启用 Pages 站点）
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: 上传构建产物
         uses: actions/upload-pages-artifact@v3

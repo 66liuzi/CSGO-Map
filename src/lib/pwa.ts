@@ -55,6 +55,7 @@ export function registerSW(handlers: Handlers): void {
         handlers.onCleared()
         break
       case 'SW_ACTIVATED':
+      case 'SW_VERSION':
         handlers.onActivated(String(data.version || ''))
         break
       case 'CACHE_STATS':
@@ -68,6 +69,9 @@ export function registerSW(handlers: Handlers): void {
       .register(`${base}sw.js`, { scope: base, updateViaCache: 'none' })
       .then((reg) => {
         registration = reg
+
+        // 主动问一次当前正在运行的版本号（刷新后版本号也要能显示）
+        reg.active?.postMessage({ type: 'GET_VERSION' })
 
         if (reg.waiting && navigator.serviceWorker.controller) {
           handlers.onUpdateAvailable(applyUpdate)

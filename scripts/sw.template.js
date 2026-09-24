@@ -170,7 +170,12 @@ self.addEventListener('message', (event) => {
     return
   }
   if (data.type === 'GET_VERSION') {
-    event.source && event.source.postMessage({ type: 'SW_VERSION', version: VERSION })
+    event.waitUntil(
+      (async () => {
+        const cs = await self.clients.matchAll({ includeUncontrolled: true })
+        cs.forEach((c) => c.postMessage({ type: 'SW_VERSION', version: VERSION }))
+      })()
+    )
     return
   }
   if (data.type === 'CACHE_ALL' && Array.isArray(data.urls)) {

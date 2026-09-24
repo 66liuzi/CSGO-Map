@@ -20,7 +20,7 @@ FONT_CANDIDATES = [
     "/System/Library/Fonts/Supplemental/Songti.ttc",
 ]
 
-W, H = 1600, 900
+W, H = 1600, 1000  # 16:10，和列表卡片比例一致
 
 
 def load_font(size: int) -> ImageFont.FreeTypeFont:

@@ -33,6 +33,36 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
+THUMB_RATIO = 16 / 10  # 列表卡片是 16:10
+
+
+def make_thumbnail(img: Image.Image, thumb_edge: int) -> Image.Image:
+    """
+    生成列表缩略图。
+
+    - 横屏图（正常游戏截图）：等比缩放后居中裁成 16:10，填满卡片。
+    - 竖屏图（手机竖着截的图）：整张图缩放到卡片里，左右补深色边，
+      避免把准心所在的下半部分裁掉。
+    """
+    w, h = img.size
+    if w / h >= 1.3:
+        target_h = thumb_edge * 10 / 16
+        scale = max(thumb_edge / w, target_h / h)
+        resized = img.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
+        left = (resized.width - thumb_edge) // 2
+        top = (resized.height - round(target_h)) // 2
+        return resized.crop((left, top, left + thumb_edge, top + round(target_h)))
+
+    # 竖屏：装进 16:10 画布，保留完整画面
+    tw = thumb_edge
+    th = round(tw / THUMB_RATIO)
+    inner = img.copy()
+    inner.thumbnail((tw, th), Image.LANCZOS)
+    canvas = Image.new("RGB", (tw, th), (13, 18, 25))
+    canvas.paste(inner, ((tw - inner.width) // 2, (th - inner.height) // 2))
+    return canvas
+
+
 def process(src: str, name: str, out_dir: str, max_edge: int, thumb_edge: int, quality: int) -> dict:
     if not os.path.isfile(src):
         raise SystemExit(f"找不到源图片：{src}")
@@ -64,8 +94,7 @@ def process(src: str, name: str, out_dir: str, max_edge: int, thumb_edge: int, q
     main.save(main_path, "WEBP", quality=quality, method=6, exact=False)
 
     # 3. 缩略图（列表页用，避免手机上一次性下载大图）
-    thumb = img.copy()
-    thumb.thumbnail((thumb_edge, thumb_edge), Image.LANCZOS)
+    thumb = make_thumbnail(img, thumb_edge)
     thumb_path = os.path.join(out_dir, f"{name}-thumb.webp")
     thumb.save(thumb_path, "WEBP", quality=82, method=6)
 

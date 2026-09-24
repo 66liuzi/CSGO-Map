@@ -719,8 +719,9 @@ a {
   border-radius: 12px;
   overflow: hidden;
   height: min(62vh, 620px);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   touch-action: pan-y;
   user-select: none;
 }
@@ -731,8 +732,12 @@ a {
 }
 
 .zoomimg img {
+  /* 用 flex + max-* 才能真正按容器高度收缩；竖屏长图也能一次看全 */
   max-width: 100%;
   max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   display: block;
   transform-origin: center center;
   will-change: transform;

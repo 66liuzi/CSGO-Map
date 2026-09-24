@@ -13,7 +13,7 @@
  *  用户点击更新 → skipWaiting → 页面 reload，保证不会长期跑旧版本。
  */
 
-const VERSION = '1790228526667'
+const VERSION = '1790229314082-294bc40'
 const CACHE_STATIC = 'd2-static-' + VERSION
 /** 图片缓存用固定名字：图片文件名是稳定的，升级版本时不需要重新下载一遍 */
 const CACHE_IMG = 'd2-img-v1'
@@ -170,7 +170,12 @@ self.addEventListener('message', (event) => {
     return
   }
   if (data.type === 'GET_VERSION') {
-    event.source && event.source.postMessage({ type: 'SW_VERSION', version: VERSION })
+    event.waitUntil(
+      (async () => {
+        const cs = await self.clients.matchAll({ includeUncontrolled: true })
+        cs.forEach((c) => c.postMessage({ type: 'SW_VERSION', version: VERSION }))
+      })()
+    )
     return
   }
   if (data.type === 'CACHE_ALL' && Array.isArray(data.urls)) {
