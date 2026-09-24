@@ -13,7 +13,7 @@
  *  用户点击更新 → skipWaiting → 页面 reload，保证不会长期跑旧版本。
  */
 
-const VERSION = '1790258595808-e3cb48d'
+const VERSION = '1790259922928-af7cc98'
 const CACHE_STATIC = 'd2-static-' + VERSION
 /** 图片缓存用固定名字：图片文件名是稳定的，升级版本时不需要重新下载一遍 */
 const CACHE_IMG = 'd2-img-v1'
