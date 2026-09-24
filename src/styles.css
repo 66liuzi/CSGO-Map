@@ -743,33 +743,38 @@ a {
   margin-bottom: 14px;
 }
 
-.zoomimg {
+/* 可滚动容器：图片按原始像素尺寸撑开，缩放/平移交给系统原生手势。
+   touch-action 明确放开 pinch-zoom + 双向 pan，iOS Safari / macOS 触控板
+   就能用系统自带的捏合缩放与拖动，而不是走 JS 手势库。 */
+.zoomwrap {
+  position: relative;
+}
+
+.zoomscroll {
   position: relative;
   background: #05070a;
   border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 黑底只包住图片本身，竖屏图两侧不留大片空白 */
-  width: fit-content;
-  max-width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+  max-height: min(70vh, 720px);
+  /* 给图片一个初始的、接近容器宽度的展示尺寸，图片本身仍按自然宽高渲染 */
+  display: block;
   margin: 0 auto;
-  cursor: zoom-in;
+}
+
+.zoomimg {
+  /* 关键：不给 max-width:100%，让它按原始像素显示，
+     超出容器就产生滚动，双指捏合时系统原生缩放这个滚动区域 */
+  display: block;
+  max-width: none;
+  width: auto;
+  height: auto;
+  image-rendering: auto;
   /* 允许系统长按菜单（存储到照片 / 拷贝） */
   -webkit-touch-callout: default;
   user-select: auto;
-}
-
-.zoomimg img {
-  /* 不做自定义缩放，直接把图给到最大：竖屏长图也能看清准心 */
-  max-width: 100%;
-  max-height: min(80vh, 900px);
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-  image-rendering: auto;
 }
 
 .zoomhint {
@@ -918,8 +923,8 @@ a {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .zoomimg img {
-    max-height: min(66vh, 640px);
+  .zoomscroll {
+    max-height: min(56vh, 560px);
   }
 
   .modalpanel {
@@ -933,7 +938,7 @@ a {
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
-  .zoomimg img {
+  .zoomscroll {
     max-height: 78vh;
   }
 
