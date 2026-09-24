@@ -9,6 +9,7 @@
  */
 import type { GrenadeType, Lineup, Side, Zone } from '../data/types'
 import { GRENADE_SHORT, lineupTitle } from '../data/types'
+import type { MapId } from '../data/maps'
 import { ALL_GROUPS, STOPWORDS, type SynonymGroup, type TokenKind } from '../data/synonyms'
 
 /* ------------------------------------------------------------------ */
@@ -57,6 +58,30 @@ const TERM_INDEX: Term[] = (() => {
   }
   return terms.sort((a, b) => b.raw.length - a.raw.length)
 })()
+
+/**
+ * 同一个写法可能属于多个同义组（例如「拱门」在小镇和迷城都有）。
+ * 通用组（没写 maps 的）排前面，地图专属的排后面；匹配时再按点位所属地图挑。
+ */
+const TERM_TO_GROUPS: Map<string, SynonymGroup[]> = (() => {
+  const m = new Map<string, SynonymGroup[]>()
+  for (const term of TERM_INDEX) {
+    const list = m.get(term.raw) ?? []
+    if (!list.includes(term.group)) list.push(term.group)
+    m.set(term.raw, list)
+  }
+  for (const list of m.values()) {
+    list.sort((a, b) => (a.maps ? 1 : 0) - (b.maps ? 1 : 0))
+  }
+  return m
+})()
+
+/** 某个写法在指定地图下应该用哪些同义组 */
+function groupsForTermInMap(raw: string, map: string): SynonymGroup[] {
+  const all = TERM_TO_GROUPS.get(raw) ?? []
+  const scoped = all.filter((g) => !g.maps || g.maps.includes(map as MapId))
+  return scoped.length ? scoped : all
+}
 
 const STOP_SET = new Set(STOPWORDS.map(normalize).filter(Boolean))
 /** 长词优先的废话词表，便于「帮我找」整体吃掉 */
@@ -216,11 +241,18 @@ export function scoreLineup(l: Lineup, tokens: QueryToken[], compactQuery: strin
   tokens.forEach((tk, idx) => {
     switch (tk.kind) {
       case 'location': {
-        const onStart = groupHitsField(tk.group, l.startLocation)
-        const onTarget = groupHitsField(tk.group, l.targetLocation)
+        // 同一个词在不同地图意思不同（拱门 / 下水道 / 死点 …），按点位所属地图挑词库
+        const groups = groupsForTermInMap(tk.raw, l.map)
+        const onStart = groups.some((g) => groupHitsField(g, l.startLocation))
+        const onTarget = groups.some((g) => groupHitsField(g, l.targetLocation))
         if (onStart) startIdx.add(idx)
         if (onTarget) targetIdx.add(idx)
         if (onStart || onTarget) matchedIdx.add(idx)
+        break
+      }
+      case 'map': {
+        // 说了「迷城」「小镇」就只看那张图
+        if (tk.canon === l.map) matchedIdx.add(idx)
         break
       }
       case 'grenade':
@@ -250,6 +282,17 @@ export function scoreLineup(l: Lineup, tokens: QueryToken[], compactQuery: strin
   })
 
   if (matchedIdx.size === 0) return null
+
+  // 说了某张图，就不是那张图的点位直接淘汰（「迷城 烟」不该出沙二的烟）
+  const mapTokens = tokens.filter((t) => t.kind === 'map')
+  if (mapTokens.length && !mapTokens.some((t) => t.canon === l.map && matchedIdx.has(tokens.indexOf(t)))) {
+    return null
+  }
+  // 除了地图词之外还得有别的词命中，否则「迷城」会把该图全部点位刷出来
+  if (mapTokens.length < tokens.length) {
+    const anyReal = tokens.some((t, idx) => t.kind !== 'map' && matchedIdx.has(idx))
+    if (!anyReal) return null
+  }
 
   const locTokenCount = tokens.filter((t) => t.kind === 'location').length
   hits.start = startIdx.size > 0
@@ -281,6 +324,8 @@ export function scoreLineup(l: Lineup, tokens: QueryToken[], compactQuery: strin
   if (locTokenCount >= 2 && hits.start && hits.target && !sameTokenBothSides) score += 3000
 
   if (hits.aliasAll) score += 1500
+  // 搜索里带了地图名（「迷城 拱门烟」）→ 命中的图排前面
+  if (mapTokens.length && mapTokens.some((t) => t.canon === l.map)) score += 900
   if (hits.grenade) score += 700
   if (hits.method) score += 500
   if (hits.side) score += 300
@@ -309,12 +354,13 @@ function grenadeHits(canon: string, type: GrenadeType): boolean {
 /* ------------------------------------------------------------------ */
 
 export interface Filters {
+  map: MapId | 'ALL'
   side: Side | 'ALL'
   grenade: GrenadeType | 'ALL'
   zone: Zone | 'ALL'
 }
 
-export const DEFAULT_FILTERS: Filters = { side: 'ALL', grenade: 'ALL', zone: 'ALL' }
+export const DEFAULT_FILTERS: Filters = { map: 'ALL', side: 'ALL', grenade: 'ALL', zone: 'ALL' }
 
 /** 低于这个分数视为无关，不显示 */
 const MIN_SCORE = 500
@@ -332,6 +378,7 @@ export function searchLineups(rawQuery: string, all: Lineup[], filters: Filters 
   const compact = normalize(rawQuery)
   const pool = all.filter(
     (l) =>
+      (filters.map === 'ALL' || l.map === filters.map) &&
       (filters.side === 'ALL' || l.side === filters.side) &&
       (filters.grenade === 'ALL' || l.grenadeType === filters.grenade) &&
       (filters.zone === 'ALL' || l.zone === filters.zone)

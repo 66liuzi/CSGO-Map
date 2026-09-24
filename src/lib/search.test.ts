@@ -161,8 +161,8 @@ describe('性能与数据完整性', () => {
       expect(l.id, 'id 不能为空').toBeTruthy()
       expect(['T', 'CT']).toContain(l.side)
       expect(['烟雾弹', '闪光弹', '燃烧弹', '手雷']).toContain(l.grenadeType)
-      expect(['站投', '跳投', '跑投', '跑跳投', '其他']).toContain(l.throwMethod)
-      expect(l.image).toMatch(/^images\/dust2\/.+\.webp$/)
+      expect(['站投', '跳投', '跑投', '跑跳投', '蹲投', '其他']).toContain(l.throwMethod)
+      expect(l.image).toMatch(/^images\/(dust2|inferno|mirage)\/.+\.webp$/)
       expect(l.aliases.length).toBeGreaterThan(0)
       expect(normalize(l.description).length).toBeGreaterThan(0)
     }
@@ -170,5 +170,92 @@ describe('性能与数据完整性', () => {
 
   it('id 唯一', () => {
     expect(new Set(all.map((l) => l.id)).size).toBe(all.length)
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* 多地图                                                              */
+/* ------------------------------------------------------------------ */
+
+const mk = (over: Partial<Lineup>): Lineup => ({
+  id: 'x',
+  map: 'dust2',
+  side: 'T',
+  startLocation: '中路',
+  targetLocation: '警家',
+  grenadeType: '烟雾弹',
+  throwMethod: '站投',
+  description: '测试用',
+  aliases: [],
+  image: 'images/dust2/x.webp',
+  zone: 'MID',
+  createdAt: '2026-09-24',
+  updatedAt: '2026-09-24',
+  ...over,
+})
+
+const multi: Lineup[] = [
+  mk({ id: 'd1', map: 'dust2', startLocation: 'B洞', targetLocation: 'B平台', grenadeType: '燃烧弹', zone: 'B' }),
+  mk({ id: 'i1', map: 'inferno', startLocation: '香蕉道', targetLocation: '拱门', zone: 'A' }),
+  mk({ id: 'm1', map: 'mirage', startLocation: '中路', targetLocation: '拱门', zone: 'MID' }),
+  mk({ id: 'm2', map: 'mirage', startLocation: 'B小', targetLocation: 'B平台', grenadeType: '闪光弹', zone: 'B' }),
+  mk({ id: 'd2', map: 'dust2', startLocation: 'B1', targetLocation: 'B2' }),
+]
+
+describe('地图词', () => {
+  it('沙二 / 小镇 / 迷城 / dust2 / inferno / mirage 都能被认出来', () => {
+    for (const [q, expectCanon] of [
+      ['沙二', 'dust2'],
+      ['炽热沙城', 'dust2'],
+      ['dust2', 'dust2'],
+      ['小镇', 'inferno'],
+      ['炼狱小镇', 'inferno'],
+      ['迷城', 'mirage'],
+      ['荒漠迷城', 'mirage'],
+      ['mirage', 'mirage'],
+    ] as const) {
+      const t = tokenize(q)
+      expect(t[0]?.kind, `「${q}」应是地图词`).toBe('map')
+      expect(t[0]?.canon).toBe(expectCanon)
+    }
+  })
+
+  it('说「迷城 拱门」只出迷城的点位', () => {
+    const r = searchLineups('迷城 拱门', multi, DEFAULT_FILTERS)
+    expect(r.items.map((h) => h.lineup.id)).toEqual(['m1'])
+  })
+
+  it('说「小镇 拱门烟」只出小镇的点位', () => {
+    const r = searchLineups('小镇 拱门烟', multi, DEFAULT_FILTERS)
+    expect(r.items.map((h) => h.lineup.id)).toEqual(['i1'])
+  })
+
+  it('地图筛选只保留该图的点位', () => {
+    const r = searchLineups('', multi, { ...DEFAULT_FILTERS, map: 'mirage' })
+    expect(r.items.map((h) => h.lineup.id).sort()).toEqual(['m1', 'm2'])
+  })
+})
+
+describe('位置词按地图区分', () => {
+  it('「拱门」在两张图里各归各的', () => {
+    const r = searchLineups('拱门', multi, DEFAULT_FILTERS)
+    expect(r.items.map((h) => h.lineup.id).sort()).toEqual(['i1', 'm1'])
+  })
+
+  it('B1 / B2 能当关键词', () => {
+    expect(tokenize('b1').map((t) => t.canon)).toEqual(['B1'])
+    expect(tokenize('b2').map((t) => t.canon)).toEqual(['B2'])
+    const r = searchLineups('B1', multi, DEFAULT_FILTERS)
+    expect(r.items.map((h) => h.lineup.id)).toEqual(['d2'])
+  })
+
+  it('香蕉道 / B小 / VIP 这类地图专属词能命中', () => {
+    expect(searchLineups('香蕉道', multi, DEFAULT_FILTERS).items.map((h) => h.lineup.id)).toEqual(['i1'])
+    expect(searchLineups('B小', multi, DEFAULT_FILTERS).items.map((h) => h.lineup.id)).toEqual(['m2'])
+  })
+
+  it('通用词（警家 / 中路 / 烟）不做地图限制', () => {
+    expect(tokenize('中路')[0].group.maps).toBeUndefined()
+    expect(tokenize('警家')[0].group.maps).toBeUndefined()
   })
 })

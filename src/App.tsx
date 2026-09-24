@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import lineupsJson from './data/lineups.json'
 import imageSizesJson from './data/imageSizes.json'
 import type { Lineup } from './data/types'
+import { MAPS, MAP_BY_ID, mapFullName } from './data/maps'
 import { DEFAULT_FILTERS, allImageUrls, searchLineups, type Filters } from './lib/search'
 import { assetUrl } from './lib/assets'
 import {
@@ -35,9 +36,11 @@ function readUrlState(): { q: string; filters: Filters } {
   const side = params.get('side')
   const grenade = params.get('g')
   const zone = params.get('zone')
+  const map = params.get('map')
   return {
     q: params.get('q') ?? '',
     filters: {
+      map: map && MAP_BY_ID[map] ? (map as Filters['map']) : 'ALL',
       side: side === 'T' || side === 'CT' ? side : 'ALL',
       grenade: grenade === '烟雾弹' || grenade === '闪光弹' || grenade === '燃烧弹' || grenade === '手雷' ? grenade : 'ALL',
       zone: zone === 'A' || zone === 'MID' || zone === 'B' ? zone : 'ALL',
@@ -50,12 +53,17 @@ export default function App() {
   const [query, setQuery] = useState(() => initial.q || sessionStorage.getItem(SS_QUERY) || '')
   const [filters, setFilters] = useState<Filters>(() => {
     const saved = sessionStorage.getItem('d2.filters')
-    if (initial.filters.side !== 'ALL' || initial.filters.grenade !== 'ALL' || initial.filters.zone !== 'ALL') {
-      return initial.filters
-    }
+    const initialDirty =
+      initial.filters.map !== 'ALL' ||
+      initial.filters.side !== 'ALL' ||
+      initial.filters.grenade !== 'ALL' ||
+      initial.filters.zone !== 'ALL'
+    if (initialDirty) return initial.filters
     if (saved) {
       try {
-        return { ...DEFAULT_FILTERS, ...(JSON.parse(saved) as Partial<Filters>) }
+        const parsed = { ...DEFAULT_FILTERS, ...(JSON.parse(saved) as Partial<Filters>) }
+        // 老缓存里没有 map 字段，补上默认值
+        return MAP_BY_ID[String(parsed.map)] ? parsed : { ...parsed, map: 'ALL' }
       } catch {
         /* 忽略损坏的缓存 */
       }
@@ -80,6 +88,13 @@ export default function App() {
   const pool = useMemo(() => (hideSamples ? ALL.filter((l) => !l.isSample) : ALL), [hideSamples])
   const result = useMemo(() => searchLineups(query, pool, filters), [query, pool, filters])
   const imageUrls = useMemo(() => allImageUrls(ALL, BASE), [])
+  const countsByMap = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const l of pool) out[l.map] = (out[l.map] ?? 0) + 1
+    return out
+  }, [pool])
+  // 当前选中的地图一条点位都没有 → 给一句明确提示，而不是「没搜到」
+  const mapEmpty = filters.map !== 'ALL' && (countsByMap[filters.map] ?? 0) === 0
 
   /* ---------------- Service Worker ---------------- */
   useEffect(() => {
@@ -137,6 +152,7 @@ export default function App() {
     sessionStorage.setItem('d2.filters', JSON.stringify(filters))
     const params = new URLSearchParams()
     if (query) params.set('q', query)
+    if (filters.map !== 'ALL') params.set('map', filters.map)
     if (filters.side !== 'ALL') params.set('side', filters.side)
     if (filters.grenade !== 'ALL') params.set('g', filters.grenade)
     if (filters.zone !== 'ALL') params.set('zone', filters.zone)
@@ -237,7 +253,9 @@ export default function App() {
     push('正在清除离线数据…')
   }, [push])
 
-  const hasFilters = filters.side !== 'ALL' || filters.grenade !== 'ALL' || filters.zone !== 'ALL'
+  const hasFilters =
+    filters.map !== 'ALL' || filters.side !== 'ALL' || filters.grenade !== 'ALL' || filters.zone !== 'ALL'
+  const currentMap = filters.map !== 'ALL' ? mapFullName(filters.map) : ''
   const recognized = result.tokens.map((t) => t.canon).filter((v, i, a) => a.indexOf(v) === i)
 
   return (
@@ -248,8 +266,10 @@ export default function App() {
             <img src={assetUrl('icons/favicon-32.png')} alt="" width={26} height={26} />
           </span>
           <div>
-            <div className="brandtitle">CS2 炽热沙城 道具查询库</div>
-            <div className="brandsub">Dust II · 一张准心图一条点位 · 搜索即出</div>
+            <div className="brandtitle">CS2 道具查询库</div>
+            <div className="brandsub">
+              {MAPS.map((m) => m.short).join(' · ')} · 一张准心图一条点位
+            </div>
           </div>
         </div>
         <div className="topright">
@@ -274,6 +294,7 @@ export default function App() {
           hideSamples={hideSamples}
           onToggleSamples={setHideSamples}
           sampleCount={sampleCount}
+          countsByMap={countsByMap}
         />
       </div>
 
@@ -292,7 +313,10 @@ export default function App() {
               </>
             )}
           </span>
-          <span className="muted small">{ALL.length} 条点位 · {imageUrls.length} 个图片文件</span>
+          <span className="muted small">
+            {currentMap ? `${currentMap} · ` : ''}
+            {ALL.length} 条点位 · {imageUrls.length} 个图片文件
+          </span>
         </div>
 
         {result.items.length > 0 ? (
@@ -308,6 +332,7 @@ export default function App() {
             onClearFilters={() => setFilters(DEFAULT_FILTERS)}
             hasFilters={hasFilters}
             query={query}
+            mapEmpty={mapEmpty}
           />
         )}
       </main>

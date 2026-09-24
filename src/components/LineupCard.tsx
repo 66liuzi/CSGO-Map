@@ -1,6 +1,7 @@
 import { assetUrl } from '../lib/assets'
 import type { Lineup } from '../data/types'
 import { lineupTitle, GRENADE_SHORT } from '../data/types'
+import { mapLabel } from '../data/maps'
 
 interface Props {
   lineup: Lineup
@@ -19,6 +20,7 @@ export default function LineupCard({ lineup, onOpen }: Props) {
           className="thumb"
         />
         <div className="badges">
+          <span className="badge map">{mapLabel(lineup.map)}</span>
           <span className={`badge side-${lineup.side.toLowerCase()}`}>{lineup.side}</span>
           <span className={`badge g-${GRENADE_SHORT[lineup.grenadeType]}`}>
             {GRENADE_SHORT[lineup.grenadeType] ?? lineup.grenadeType}

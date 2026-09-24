@@ -1,5 +1,6 @@
 import type { GrenadeType, Side, Zone } from '../data/types'
 import { ZONE_LABEL } from '../data/types'
+import { MAPS, type MapId } from '../data/maps'
 import type { Filters } from '../lib/search'
 
 interface Props {
@@ -8,7 +9,14 @@ interface Props {
   hideSamples: boolean
   onToggleSamples: (v: boolean) => void
   sampleCount: number
+  /** 每张图各有多少条，chip 上显示 */
+  countsByMap: Record<string, number>
 }
+
+const MAP_CHIPS: { value: MapId | 'ALL'; label: string }[] = [
+  { value: 'ALL', label: '全部' },
+  ...MAPS.map((m) => ({ value: m.id as MapId | 'ALL', label: m.short })),
+]
 
 const SIDES: { value: Side | 'ALL'; label: string }[] = [
   { value: 'ALL', label: '全部' },
@@ -31,11 +39,34 @@ const ZONES: { value: Zone | 'ALL'; label: string }[] = [
   { value: 'B', label: ZONE_LABEL.B },
 ]
 
-export default function FilterBar({ filters, onChange, hideSamples, onToggleSamples, sampleCount }: Props) {
-  const dirty = filters.side !== 'ALL' || filters.grenade !== 'ALL' || filters.zone !== 'ALL'
+export default function FilterBar({
+  filters,
+  onChange,
+  hideSamples,
+  onToggleSamples,
+  sampleCount,
+  countsByMap,
+}: Props) {
+  const dirty =
+    filters.map !== 'ALL' || filters.side !== 'ALL' || filters.grenade !== 'ALL' || filters.zone !== 'ALL'
 
   return (
     <div className="filters">
+      <div className="filterrow maps" role="group" aria-label="地图筛选">
+        <span className="filterlabel">地图</span>
+        {MAP_CHIPS.map((m) => (
+          <button
+            key={m.value}
+            className={`chip${filters.map === m.value ? ' on' : ''}`}
+            onClick={() => onChange({ ...filters, map: m.value })}
+          >
+            {m.label}
+            {m.value !== 'ALL' && countsByMap[m.value] ? (
+              <span className="chipcount">{countsByMap[m.value]}</span>
+            ) : null}
+          </button>
+        ))}
+      </div>
       <div className="filterrow" role="group" aria-label="阵营筛选">
         <span className="filterlabel">阵营</span>
         {SIDES.map((s) => (
@@ -72,7 +103,10 @@ export default function FilterBar({ filters, onChange, hideSamples, onToggleSamp
           </button>
         ))}
         {dirty && (
-          <button className="chip reset" onClick={() => onChange({ side: 'ALL', grenade: 'ALL', zone: 'ALL' })}>
+          <button
+            className="chip reset"
+            onClick={() => onChange({ map: 'ALL', side: 'ALL', grenade: 'ALL', zone: 'ALL' })}
+          >
             清除筛选
           </button>
         )}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { assetUrl } from '../lib/assets'
 import type { Lineup } from '../data/types'
 import { GRENADE_SHORT, lineupTitle, ZONE_LABEL } from '../data/types'
+import { mapFullName } from '../data/maps'
 
 interface Props {
   lineup: Lineup | null
@@ -157,6 +158,7 @@ export default function LineupDetail({ lineup, onClose }: Props) {
           <div className="modaltitle">
             <h2>{lineupTitle(lineup)}</h2>
             <div className="metarow">
+              <span className="badge map">{mapFullName(lineup.map)}</span>
               <span className={`badge side-${lineup.side.toLowerCase()}`}>{lineup.side} 方</span>
               <span className="badge method">{lineup.grenadeType}</span>
               <span className="badge method">{lineup.throwMethod}</span>
@@ -173,6 +175,15 @@ export default function LineupDetail({ lineup, onClose }: Props) {
         <ZoomImage src={assetUrl(lineup.image)} alt={`${lineupTitle(lineup)} 准心瞄点图`} />
 
         <dl className="detail">
+          {lineup.needsReview && (
+            <div className="wide reviewnote">
+              <dt>待确认</dt>
+              <dd>
+                这条是 AI 从你给的一句话里自动提取的，可能有推断成分。看完图觉得有哪里不对（阵营 / 起点 / 目标 / 投法），
+                直接把正确说法告诉 AI，它会改掉这条并把标记去掉。
+              </dd>
+            </div>
+          )}
           <div>
             <dt>起始位置</dt>
             <dd>{lineup.startLocation}</dd>

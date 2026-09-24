@@ -6,6 +6,8 @@
  * 本文件只描述字段格式，界面代码只依赖这些类型，不关心具体点位。
  */
 
+import type { MapId } from './maps'
+
 /** 阵营 */
 export type Side = 'T' | 'CT'
 
@@ -13,16 +15,16 @@ export type Side = 'T' | 'CT'
 export type GrenadeType = '烟雾弹' | '闪光弹' | '燃烧弹' | '手雷'
 
 /** 投掷方法 */
-export type ThrowMethod = '站投' | '跳投' | '跑投' | '跑跳投' | '其他'
+export type ThrowMethod = '站投' | '跳投' | '跑投' | '跑跳投' | '蹲投' | '其他'
 
 /** 区域（用于筛选：全部 / A区 / 中路 / B区） */
 export type Zone = 'A' | 'MID' | 'B'
 
 export interface Lineup {
-  /** 唯一编号，格式建议 d2-<side>-<起点>-<目标>-<道具>-<四位序号> */
+  /** 唯一编号，格式建议 <图缩写>-<side>-<起点>-<目标>-<道具>-<四位序号> */
   id: string
-  /** 地图，固定 Dust II/炽热沙城 */
-  map: string
+  /** 地图 id：dust2 / inferno / mirage（显示名见 src/data/maps.ts） */
+  map: MapId
   /** T 或 CT */
   side: Side
   /** 起始位置，例如「A大外」「中门」「匪家」 */

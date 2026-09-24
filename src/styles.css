@@ -290,6 +290,31 @@ a {
   border-color: #4a2525;
 }
 
+.chipcount {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+/* 地图那一行稍微突出一点，切换地图是最高频操作 */
+.filterrow.maps .chip {
+  font-size: 14px;
+  padding: 9px 16px;
+  font-weight: 600;
+}
+
+.reviewnote {
+  border: 1px solid #574007;
+  background: rgba(243, 156, 18, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.reviewnote dt {
+  color: #ffcf7a;
+}
+
 .switch {
   display: inline-flex;
   align-items: center;
@@ -382,6 +407,11 @@ a {
   background: var(--smoke-bg);
   color: var(--smoke);
   backdrop-filter: blur(4px);
+}
+
+.badge.map {
+  background: rgba(99, 200, 240, 0.16);
+  color: #9ddcf5;
 }
 
 .badge.side-t {
