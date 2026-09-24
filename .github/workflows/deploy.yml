@@ -41,9 +41,18 @@ jobs:
         run: npm run build
 
       - name: 配置 Pages（首次会自动启用 Pages 站点）
+        id: pages_cfg
         uses: actions/configure-pages@v5
+        continue-on-error: true
         with:
           enablement: true
+
+      - name: Pages 未启用时的处理提示
+        if: steps.pages_cfg.outcome == 'failure'
+        run: |
+          echo "::warning::GitHub Pages 尚未在本仓库启用，部署步骤会失败。"
+          echo "请打开 https://github.com/${{ github.repository }}/settings/pages"
+          echo "把 Build and deployment 的 Source 改成 GitHub Actions，然后重新运行本工作流。"
 
       - name: 上传构建产物
         uses: actions/upload-pages-artifact@v3
