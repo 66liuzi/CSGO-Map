@@ -61,11 +61,14 @@
    提交信息格式：`content(<地图id>): add <阵营> <起点> to <目标> <道具英文>`，
    非内容改动（代码/样式）用 `chore:` / `feat:` / `fix:`。
    提交前先 `git status` 看有没有与本任务无关的改动，不要顺手提交别人的修改。
-7. **更新线上**（两处，缺一不可）：
-   - GitHub Pages：推送后等 Actions 跑完（仓库 Actions 页面），前提是仓库 Pages 的
-     Source 已设为 GitHub Actions。
-   - WorkBuddy 发布链接：重新发布 `dist/`（`workbuddy_sites_deploy`，directory 指向项目的 `dist/`，
-     language=static，domainPrefix=`cs2-dust2-lineups`）。**重新发布需要用户在本轮明确要求上线。**
+7. **更新线上**：
+   - GitHub Pages（正式链接 https://66liuzi.github.io/CSGO-Map/ ）：**推送即自动部署**
+     （Pages 的 Source 已设为 GitHub Actions，2026-09-24 起生效）。
+     推送后等 1-2 分钟，用 `curl -o /dev/null -w "%{http_code}" -L https://66liuzi.github.io/CSGO-Map/` 确认 200，
+     再带 `?q=<搜索词>` 让浏览器打开验证能搜到新点位。
+   - WorkBuddy 备用链接 https://cs2-dust2-lineups.app.workbuddy.host/ 不会自动更新，
+     需要时用 `workbuddy_sites_deploy`（directory=`dist/`，language=static，domainPrefix=`cs2-dust2-lineups`，
+     updateExistingApp=true）**手动重新发布；这一步需要用户在本轮明确要求上线。**
 8. **向用户汇报**（照这个顺序）：
    - 新增点位名称（`地图 · 起始 → 目标+道具`）
    - 可用的搜索词
@@ -138,5 +141,5 @@ npm run build                          # 正式构建（含自检）
 - 不要把点位数据搬到数据库或云端。
 - 不要要求用户自己改 JSON / 重命名图片 / 操作 git。
 - 不要在仓库里写访问令牌。
-- GitHub Pages 的首次启用只能用户手动点（Settings → Pages → Source 选 GitHub Actions），
-  本机只有 SSH 推送权限，不要在这上面反复尝试自动化授权。
+- 不要试图自动化 GitHub 授权（device code 之类）：本机只有 SSH 推送权限，
+  Pages 的首次启用只能用户在网页点一次。**这一步 2026-09-24 已完成，之后推送 `main` 即为自动部署。**

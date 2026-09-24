@@ -11,15 +11,13 @@
 
 ## 线上地址
 
-当前可用（随时可访问，与本地电脑是否开机无关）：
+两个地址都可用（随时可访问，与本地电脑是否开机无关），内容一致：
 
-- 主链接：**https://cs2-dust2-lineups.app.workbuddy.host/**
+- **GitHub Pages（正式，推荐）**：https://66liuzi.github.io/CSGO-Map/
+- 备用：https://cs2-dust2-lineups.app.workbuddy.host/
 
-GitHub Pages 备用链接（需在仓库里把 Pages 的 Source 设为 GitHub Actions 后生效）：
-
-- https://66liuzi.github.io/CSGO-Map/
-
-两个地址内容一致，都是同一份 `dist/` 静态产物，手机、电脑都能打开，也可以「添加到主屏幕」。
+都是同一份 `dist/` 静态产物，手机、电脑都能打开，也可以「添加到主屏幕」。
+推送到 `main` 后 GitHub Actions 会自动部署到第一个链接（约 1 分钟生效）。
 
 ## 仓库
 
