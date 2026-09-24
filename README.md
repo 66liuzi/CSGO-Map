@@ -118,7 +118,18 @@ Pages 的 Source 需要设为 **GitHub Actions**（仓库 Settings → Pages）�
 ## 示例数据
 
 首次体验包含 5 条明显标注为「示例占位图」的记录，图片是程序生成的占位图，**不是真实教学截图**。
-界面底部可勾选「隐藏示例数据」；正式录入真实点位后可直接删除这些记录和对应图片。
+界面底部可勾选「隐藏示例数据」；正式录入真实点位后，一条命令即可清掉示例（连占位图一起删）：
+
+```bash
+node scripts/remove-samples.mjs --yes
+```
+
+## 依赖说明
+
+- 构建/运行：Node 18+。
+- 图片处理脚本：Python 3 + Pillow（macOS 自带 `/usr/bin/python3` 已具备；缺失时
+  `/usr/bin/python3 -m pip install --user Pillow`）。
+- 新增点位脚本 `scripts/add-lineup.mjs` 需要 Node 22.18+（直接读 `synonyms.ts`）。
 
 ## 许可
 

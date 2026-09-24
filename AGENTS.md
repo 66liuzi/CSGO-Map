@@ -74,10 +74,31 @@
 
 ## 3. 图片处理要求（脚本已实现，别绕过）
 
+- 依赖 Pillow：脚本会自动找带 Pillow 的 Python（优先 `/usr/bin/python3`）。
+  报错找不到时执行：`/usr/bin/python3 -m pip install --user Pillow`。
 - 自动修正手机图片方向（EXIF）。
 - 主图最长边 1920，WebP 高质量（quality 90），保留准心、墙缝、屋檐、箱体边缘细节。
-- 生成最长边 640 的缩略图供列表使用；点击卡片看主图。
-- 文件名用稳定英文数字：`d2-<side>-<起点>-<目标>-<道具>-<序号>.webp`。
+- 缩略图最长边 640 且固定 16:10：横屏图居中裁切，竖屏图补深色边（不裁掉准心所在的画面）。
+- 文件名用稳定英文数字：`d2-<side>-<起点英文>-<目标英文>-<道具>-<序号>.webp`。
+- 用户只给一张图，不要向用户索取站位图 / 落点图 / 效果图。
+
+## 3.1 示例数据
+
+初次交付带 5 条 `isSample: true` 的示例（占位图，界面上会标注「示例」）。
+正式录入真实点位后可以清掉：
+
+```bash
+node scripts/remove-samples.mjs          # 预览
+node scripts/remove-samples.mjs --yes    # 真删（连占位图一起删）
+```
+
+## 3.2 常用命令
+
+```bash
+npm run check          # 图片统计 + 数据体检 + 搜索测试
+node scripts/add-lineup.mjs --help     # 看参数（其实看本文件的第 1 节更快）
+npm run build          # 正式构建（含自检）
+```
 
 ## 4. 不要做的事
 

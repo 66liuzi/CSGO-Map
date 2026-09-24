@@ -10,7 +10,9 @@
     "preview": "vite preview --port 4173",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "add-lineup": "node scripts/add-lineup.mjs"
+    "add-lineup": "node scripts/add-lineup.mjs",
+    "remove-samples": "node scripts/remove-samples.mjs",
+    "check": "node scripts/gen-image-sizes.mjs && node scripts/validate-lineups.mjs && vitest run"
   },
   "dependencies": {
     "react": "^18.3.1",

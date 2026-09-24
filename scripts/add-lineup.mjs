@@ -87,12 +87,38 @@ function findGroups(text, groups) {
       for (;;) {
         const idx = t.indexOf(key, from)
         if (idx < 0) break
-        found.push({ group: g, index: idx, length: key.length, term })
+        found.push({ group: g, index: idx, length: key.length, term: key })
         from = idx + key.length
       }
     }
   }
   return found.sort((a, b) => a.index - b.index || b.length - a.length)
+}
+
+/**
+ * 位置显示名：用户怎么说就怎么记（「中门」不会被改写成「中路」），
+ * 但纯英文写法（ctspawn / mid）统一用标准词，避免出现 Ctspawn 这种怪名字。
+ */
+function displayName(term, group) {
+  if (!/[\u4e00-\u9fff]/.test(term)) return group.canon
+  return term.charAt(0).toUpperCase() + term.slice(1)
+}
+
+/** 把一个位置说法（如「A大外」）归到位置词库里的某个组 */
+function findGroupFor(text, groups) {
+  const t = norm(text)
+  if (!t) return null
+  let best = null
+  for (const g of groups) {
+    for (const term of g.terms) {
+      const key = norm(term)
+      if (key.length < 2) continue
+      if (!t.includes(key) && !key.includes(t)) continue
+      const score = Math.min(key.length, t.length)
+      if (!best || score > best.score) best = { group: g, score }
+    }
+  }
+  return best?.group ?? null
 }
 
 /* ---------------- 解析说明 ---------------- */
@@ -129,9 +155,10 @@ function parseDesc(desc) {
     seen.add(hit.group.canon)
     locs.push(hit)
   }
-  if (locs[0]) out.start = locs[0].group.canon
-  if (locs[1]) out.target = locs[1].group.canon
-  // 「从A扔B」里 B 是目标；如果说明是「A大烟」只有一个位置，就交给人/AI 判断
+  if (locs[0]) out.startLoc = { display: displayName(locs[0].term, locs[0].group), group: locs[0].group }
+  if (locs[1]) out.targetLoc = { display: displayName(locs[1].term, locs[1].group), group: locs[1].group }
+  if (locs[0]) out.start = out.startLoc.display
+  if (locs[1]) out.target = out.targetLoc.display
   return out
 }
 
@@ -139,6 +166,9 @@ const parsed = parseDesc(opts.desc)
 for (const key of ['side', 'start', 'target', 'grenade', 'method']) {
   if (!opts[key] && parsed[key]) opts[key] = parsed[key]
 }
+// 说明里解析出来的位置（含它属于哪个位置组）只有在没有被 --start/--target 覆盖时才沿用
+if (parsed.startLoc && parsed.startLoc.display === opts.start) opts.startLoc = parsed.startLoc
+if (parsed.targetLoc && parsed.targetLoc.display === opts.target) opts.targetLoc = parsed.targetLoc
 
 /* ---------------- 缺信息就明确报出来 ---------------- */
 const missing = []
@@ -158,6 +188,29 @@ if (!opts.method) {
 }
 if (!opts.date) opts.date = new Date().toISOString().slice(0, 10)
 
+/* ---------------- 位置归组（决定区域与文件名） ---------------- */
+const startGroup =
+  opts.startLoc?.display === opts.start ? opts.startLoc.group : findGroupFor(opts.start, LOCATION_GROUPS)
+const targetGroup =
+  opts.targetLoc?.display === opts.target ? opts.targetLoc.group : findGroupFor(opts.target, LOCATION_GROUPS)
+
+for (const [label, text, group] of [
+  ['起点', opts.start, startGroup],
+  ['目标', opts.target, targetGroup],
+]) {
+  if (!group) {
+    console.error(`位置「${text}」不在位置词库里。`)
+    console.error('请先在 src/data/synonyms.ts 的 LOCATION_GROUPS 里加上这个说法，')
+    console.error('并在 ZONE_MAP 里登记它属于 A / MID / B，然后重跑本脚本。')
+    process.exit(6)
+  }
+  if (!ZONE_MAP[group.canon]) {
+    console.error(`${label}「${text}」对应的标准词是「${group.canon}」，但 ZONE_MAP 里没有登记它的区域。`)
+    console.error('请在 src/data/synonyms.ts 的 ZONE_MAP 里补上，然后重跑本脚本。')
+    process.exit(6)
+  }
+}
+
 /* ---------------- 生成 id / 文件名 ---------------- */
 const LOC_SLUG = {
   警家: 'ctspawn',
@@ -172,9 +225,10 @@ const LOC_SLUG = {
   Xbox: 'xbox',
 }
 const NADE_SLUG = { 烟雾弹: 'smoke', 闪光弹: 'flash', 燃烧弹: 'molotov', 手雷: 'he' }
-const slugOf = (loc, fallback) => LOC_SLUG[loc] ?? norm(loc).replace(/[^a-z0-9]/g, '') ?? fallback
-const startSlug = slugOf(opts.start, 'loc') || 'loc'
-const targetSlug = slugOf(opts.target, 'loc') || 'loc'
+// 文件名用标准词的英文 slug（中门 → mid），保证稳定不冲突
+const slugFromGroup = (group) => LOC_SLUG[group.canon] ?? norm(group.canon).replace(/[^a-z0-9]/g, '') ?? ''
+const startSlug = slugFromGroup(startGroup) || 'loc'
+const targetSlug = slugFromGroup(targetGroup) || 'loc'
 const prefix = `d2-${opts.side.toLowerCase()}-${startSlug}-${targetSlug}-${NADE_SLUG[opts.grenade] ?? 'nade'}`
 
 const lineups = JSON.parse(readFileSync(dataFile, 'utf8'))
@@ -209,12 +263,11 @@ addAlias(`${opts.start}${opts.target}`)
 addAlias(`${opts.target}${opts.grenade}`)
 
 // 目标位置的所有同义写法 + 道具短名（警察家烟 / CT烟 / CT Spawn烟 ...）
-const targetGroup = LOCATION_GROUPS.find((g) => norm(g.canon) === norm(opts.target))
-const startGroup = LOCATION_GROUPS.find((g) => norm(g.canon) === norm(opts.start))
 const grenadeGroup = GRENADE_GROUPS.find((g) => norm(g.canon) === norm(opts.grenade))
-for (const t of targetGroup?.terms ?? []) addAlias(`${t}${short}`)
+for (const t of targetGroup.terms) addAlias(`${t}${short}`)
 for (const t of grenadeGroup?.terms ?? []) addAlias(`${opts.target}${t}`)
-if (startGroup && targetGroup) addAlias(`${startGroup.terms[0]}${targetGroup.terms[0]}${short}`)
+if (targetGroup.canon !== opts.target) addAlias(opts.target)
+if (startGroup.canon !== opts.start) addAlias(opts.start)
 // 阵营视角说法：CT烟 / T火
 addAlias(`${opts.side}${short}`)
 // 英文说法
@@ -242,6 +295,24 @@ if (sameCombo.length && !opts.allowDuplicate) {
   process.exit(5)
 }
 
+/**
+ * 找一个装了 Pillow 的 Python。
+ * 有些机器上 PATH 里的 python3 是没有 Pillow 的版本（比如 homebrew / pyenv），
+ * 所以逐个探测，别让用户自己去折腾环境。
+ */
+function resolvePython() {
+  const candidates = [process.env.PYTHON, '/usr/bin/python3', 'python3', 'python'].filter(Boolean)
+  for (const bin of candidates) {
+    try {
+      execFileSync(bin, ['-c', 'import PIL'], { stdio: 'ignore' })
+      return bin
+    } catch {
+      /* 试下一个 */
+    }
+  }
+  return null
+}
+
 /* ---------------- 处理图片 ---------------- */
 let imagePath = undefined
 if (!opts.image && !opts.dryRun) {
@@ -255,8 +326,15 @@ if (opts.image && !opts.dryRun) {
     console.error(`找不到图片：${src}`)
     process.exit(2)
   }
+  const python = resolvePython()
+  if (!python) {
+    console.error('找不到带 Pillow 的 Python，图片无法处理。请先安装：')
+    console.error('  /usr/bin/python3 -m pip install --user Pillow')
+    console.error('（或用 PYTHON=/path/to/python3 指定解释器后重跑）')
+    process.exit(7)
+  }
   const out = execFileSync(
-    'python3',
+    python,
     [join(root, 'scripts', 'process_image.py'), '--src', src, '--name', id, '--out', imagesDir],
     { encoding: 'utf8' }
   )
@@ -265,7 +343,7 @@ if (opts.image && !opts.dryRun) {
 }
 
 /* ---------------- 组装记录 ---------------- */
-const zone = opts.zone ?? ZONE_MAP[opts.target] ?? ZONE_MAP[opts.start]
+const zone = opts.zone ?? ZONE_MAP[targetGroup.canon] ?? ZONE_MAP[startGroup.canon]
 if (!zone) {
   console.error(`无法判断区域（A / MID / B）：${opts.target} / ${opts.start} 不在 zone 映射里。`)
   console.error('请在 src/data/synonyms.ts 的 ZONE_MAP 里登记这个位置，或用 --zone 指定。')
