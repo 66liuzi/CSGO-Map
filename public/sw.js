@@ -13,7 +13,7 @@
  *  用户点击更新 → skipWaiting → 页面 reload，保证不会长期跑旧版本。
  */
 
-const VERSION = '1790244263316-a277e09'
+const VERSION = '1790246543278-88a8647'
 const CACHE_STATIC = 'd2-static-' + VERSION
 /** 图片缓存用固定名字：图片文件名是稳定的，升级版本时不需要重新下载一遍 */
 const CACHE_IMG = 'd2-img-v1'
@@ -107,12 +107,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
 
+  const path = url.pathname
+
   if (req.mode === 'navigate') {
+    // 直接打开图片本身（点大图调系统看图器）时不要拦截，
+    // 否则 navigate 会回退到缓存的 index.html，用户看到的是首页而不是图。
+    if (/\/images\//.test(path) || /\.(webp|png|jpe?g|gif|avif)$/i.test(path)) return
     event.respondWith(networkFirst(req))
     return
   }
 
-  const path = url.pathname
   if (/\/images\//.test(path)) {
     event.respondWith(staleWhileRevalidate(req, CACHE_IMG))
     return

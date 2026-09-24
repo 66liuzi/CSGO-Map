@@ -107,12 +107,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
 
+  const path = url.pathname
+
   if (req.mode === 'navigate') {
+    // 直接打开图片本身（点大图调系统看图器）时不要拦截，
+    // 否则 navigate 会回退到缓存的 index.html，用户看到的是首页而不是图。
+    if (/\/images\//.test(path) || /\.(webp|png|jpe?g|gif|avif)$/i.test(path)) return
     event.respondWith(networkFirst(req))
     return
   }
 
-  const path = url.pathname
   if (/\/images\//.test(path)) {
     event.respondWith(staleWhileRevalidate(req, CACHE_IMG))
     return

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { assetUrl } from '../lib/assets'
 import type { Lineup } from '../data/types'
 import { GRENADE_SHORT, lineupTitle, ZONE_LABEL } from '../data/types'
@@ -10,126 +10,46 @@ interface Props {
 }
 
 /**
- * 准心大图：支持手机双指缩放 / 拖动 / 双击放大，桌面端支持滚轮与按钮缩放。
- * 缩放只作用在图片上，关闭按钮固定在右上角，永远好点。
+ * 准心图：不做自定义手势缩放（难用）。
+ * 点图片或按钮 → 用系统自带看图器打开原图，双指缩放、长按保存都交给系统/浏览器。
+ * 弹窗里这张图本身也尽量给大，多数情况不用放大就看得清。
  */
-function ZoomImage({ src, alt }: { src: string; alt: string }) {
-  const [scale, setScale] = useState(1)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const boxRef = useRef<HTMLDivElement>(null)
-  const state = useRef({
-    pointers: new Map<number, { x: number; y: number }>(),
-    startDist: 0,
-    startScale: 1,
-    lastTap: 0,
-    startOffset: { x: 0, y: 0 },
-    startCenter: { x: 0, y: 0 },
-  })
-
-  const reset = useCallback(() => {
-    setScale(1)
-    setOffset({ x: 0, y: 0 })
-  }, [])
-
-  useEffect(() => {
-    reset()
-  }, [src, reset])
-
-  const clampScale = (s: number) => Math.min(6, Math.max(1, s))
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-    const st = state.current
-    st.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-
-    if (st.pointers.size === 1) {
-      const now = Date.now()
-      if (now - st.lastTap < 300) {
-        setScale((prev) => (prev > 1 ? 1 : 2.5))
-        setOffset({ x: 0, y: 0 })
-        st.lastTap = 0
-      } else {
-        st.lastTap = now
-      }
-      st.startOffset = offset
-      st.startCenter = { x: e.clientX, y: e.clientY }
-    } else if (st.pointers.size === 2) {
-      const pts = [...st.pointers.values()]
-      st.startDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
-      st.startScale = scale
-    }
-  }
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    const st = state.current
-    if (!st.pointers.has(e.pointerId)) return
-    st.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-
-    if (st.pointers.size >= 2) {
-      const pts = [...st.pointers.values()]
-      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
-      if (st.startDist > 0) {
-        setScale(clampScale((st.startScale * dist) / st.startDist))
-      }
-      return
-    }
-
-    if (scale > 1) {
-      setOffset({
-        x: st.startOffset.x + (e.clientX - st.startCenter.x),
-        y: st.startOffset.y + (e.clientY - st.startCenter.y),
-      })
-    }
-  }
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    const st = state.current
-    st.pointers.delete(e.pointerId)
-    if (st.pointers.size < 2) st.startDist = 0
-    if (st.pointers.size === 1) {
-      const rest = [...st.pointers.values()][0]
-      st.startOffset = offset
-      st.startCenter = { x: rest.x, y: rest.y }
-    }
-  }
-
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    setScale((s) => clampScale(s - e.deltaY * 0.0025))
-  }
-
+function LineupImage({ src, alt, filename }: { src: string; alt: string; filename: string }) {
   return (
     <div className="zoomarea">
-      <div
-        ref={boxRef}
-        className={`zoomimg${scale > 1 ? ' zoomed' : ''}`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onWheel={onWheel}
-        onDoubleClick={() => (scale > 1 ? reset() : setScale(2.5))}
+      <a
+        className="zoomimg"
+        href={src}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="用系统查看器打开原图"
       >
-        <img
-          src={src}
-          alt={alt}
-          draggable={false}
-          style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}
-        />
-      </div>
+        <img src={src} alt={alt} />
+        <span className="zoomhint" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="M15.5 15.5 L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path
+              d="M10.5 7.5v6M7.5 10.5h6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          点击用系统看图器放大
+        </span>
+      </a>
       <div className="zoombar">
-        <button onClick={() => setScale((s) => clampScale(s - 0.5))} aria-label="缩小">
-          −
-        </button>
-        <span className="zoomval">{scale.toFixed(1)}×</span>
-        <button onClick={() => setScale((s) => clampScale(s + 0.5))} aria-label="放大">
-          ＋
-        </button>
-        <button onClick={reset} aria-label="还原">
-          还原
-        </button>
+        <a className="zoombtn" href={src} target="_blank" rel="noopener noreferrer">
+          系统看图器打开
+        </a>
+        <a className="zoombtn ghost" href={src} download={filename}>
+          保存图片
+        </a>
       </div>
-      <div className="zoomtip">双指缩放 / 拖动查看准心细节，双击可放大还原</div>
+      <div className="zoomtip">
+        点图片或上面的按钮，用手机 / 电脑自带的看图器放大；长按图片可直接保存到相册。
+      </div>
     </div>
   )
 }
@@ -150,13 +70,17 @@ export default function LineupDetail({ lineup, onClose }: Props) {
 
   if (!lineup) return null
 
+  const title = lineupTitle(lineup)
+  const src = assetUrl(lineup.image)
+  const filename = `${title.replace(/[\\/:*?"<>|]/g, '')}.webp`
+
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-label={lineupTitle(lineup)}>
+    <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
       <div className="modalbackdrop" onClick={onClose} />
       <div className="modalpanel">
         <div className="modalhead">
           <div className="modaltitle">
-            <h2>{lineupTitle(lineup)}</h2>
+            <h2>{title}</h2>
             <div className="metarow">
               <span className="badge map">{mapFullName(lineup.map)}</span>
               <span className={`badge side-${lineup.side.toLowerCase()}`}>{lineup.side} 方</span>
@@ -172,7 +96,7 @@ export default function LineupDetail({ lineup, onClose }: Props) {
           </button>
         </div>
 
-        <ZoomImage src={assetUrl(lineup.image)} alt={`${lineupTitle(lineup)} 准心瞄点图`} />
+        <LineupImage src={src} alt={`${title} 准心瞄点图`} filename={filename} />
 
         <dl className="detail">
           {lineup.needsReview && (

@@ -748,30 +748,45 @@ a {
   background: #05070a;
   border-radius: 12px;
   overflow: hidden;
-  height: min(62vh, 620px);
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: pan-y;
-  user-select: none;
-}
-
-.zoomimg.zoomed {
-  touch-action: none;
-  cursor: grab;
+  /* 黑底只包住图片本身，竖屏图两侧不留大片空白 */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  cursor: zoom-in;
+  /* 允许系统长按菜单（存储到照片 / 拷贝） */
+  -webkit-touch-callout: default;
+  user-select: auto;
 }
 
 .zoomimg img {
-  /* 用 flex + max-* 才能真正按容器高度收缩；竖屏长图也能一次看全 */
+  /* 不做自定义缩放，直接把图给到最大：竖屏长图也能看清准心 */
   max-width: 100%;
-  max-height: 100%;
+  max-height: min(80vh, 900px);
   width: auto;
   height: auto;
   object-fit: contain;
   display: block;
-  transform-origin: center center;
-  will-change: transform;
   image-rendering: auto;
+}
+
+.zoomhint {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(6, 9, 14, 0.78);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
 .zoombar {
@@ -781,20 +796,31 @@ a {
   margin-top: 8px;
 }
 
-.zoombar button {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  min-width: 46px;
-  height: 40px;
-  font-size: 15px;
+.zoombtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #07101a;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--accent);
 }
 
-.zoomval {
-  font-size: 13px;
-  color: var(--text-dim);
-  min-width: 44px;
-  text-align: center;
+.zoombtn.ghost {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--line);
+  font-weight: 500;
+}
+
+.zoombtn:active {
+  transform: translateY(1px);
 }
 
 .zoomtip {
@@ -892,8 +918,8 @@ a {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .zoomimg {
-    height: min(56vh, 480px);
+  .zoomimg img {
+    max-height: min(66vh, 640px);
   }
 
   .modalpanel {
@@ -907,8 +933,8 @@ a {
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
-  .zoomimg {
-    height: 52vh;
+  .zoomimg img {
+    max-height: 78vh;
   }
 
   .modalpanel {
