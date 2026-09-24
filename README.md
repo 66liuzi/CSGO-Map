@@ -10,7 +10,20 @@
 
 ## 线上地址
 
-> 部署完成后填写：`https://66liuzi.github.io/<仓库名>/`
+当前可用（随时可访问，与本地电脑是否开机无关）：
+
+- 主链接：**https://cs2-dust2-lineups.app.workbuddy.host/**
+
+GitHub Pages 备用链接（需在仓库里把 Pages 的 Source 设为 GitHub Actions 后生效）：
+
+- https://66liuzi.github.io/CSGO-Map/
+
+两个地址内容一致，都是同一份 `dist/` 静态产物，手机、电脑都能打开，也可以「添加到主屏幕」。
+
+## 仓库
+
+- GitHub：https://github.com/66liuzi/CSGO-Map
+- 推送到 `main` 会自动测试 + 构建 + 部署
 
 ## 界面预览
 
